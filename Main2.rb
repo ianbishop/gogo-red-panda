@@ -6,10 +6,12 @@ class Main < Qt::MainWindow
 	def initialize
 		super
 		@pieces = Array.new(9) {Array.new(9)}
-		
+		@blank = Qt::Pixmap.new("")
+		@black = Qt::Pixmap.new("resources/black.png")
+		@white = Qt::Pixmap.new("resources/white.png")
 
 		setWindowTitle 'GoGo Red Panda'
-		@turn = false
+		@turn = :black
 		@move = 0
 		init_ui
 		resize 800,850
@@ -25,14 +27,15 @@ class Main < Qt::MainWindow
 
     	@pieces.each_with_index do |n, row|
 			n.each_with_index do |p, col|
-		    	@pieces[row][col] = Qt::Label.new(self)
-		    	@pieces[row][col].objectName = "#{row}#{col}"
-		    	@pieces[row][col].text = ''
+		    	label = Qt::Label.new(self)
+		    	label.objectName = "#{row}#{col}"
+		    	label.text = ''
 		    	xPos = (row*86) + 50
 				yPos = (col*86) + 75
-		    	@pieces[row][col].geometry = Qt::Rect.new(0,0,80,80)
-		    	@pieces[row][col].pixmap = Qt::Pixmap.new("")
-		    	@pieces[row][col].move xPos-40,yPos-40
+		    	label.geometry = Qt::Rect.new(0,0,80,80)
+		    	label.pixmap = @blank
+		    	label.move xPos-40,yPos-40
+		    	@pieces[row][col] = Piece.new(label,row,col)
 		    end
 		end
 
@@ -46,6 +49,14 @@ class Main < Qt::MainWindow
 		connect(@newGame, SIGNAL("triggered()"),self,SLOT("createGame()"))
 	end
 
+	def clear_board
+		@pieces.each_with_index do |n, row|
+			n.each_with_index do |p, col|
+				@pieces[row][col].label.pixmap = @blank
+			end
+		end
+	end
+
 	def mousePressEvent(event)
 		puts "Mouse clicked #{event.pos.x}, #{event.pos.y-25}"
 		determineCoOrd(event.pos)
@@ -54,26 +65,28 @@ class Main < Qt::MainWindow
 	def determineCoOrd(pos)
 		x = (pos.x - 50) / 86
 		y = (pos.y - 50) / 86
-		#return [x,y]
 		puts "#{x}#{y}"
 		validateMove x,y
 	end
 
 	def validateMove(x,y)
 		if (true) then #check for move validity here
-			#@pieces[x][y] = Piece.new(@turn ? :black : :white, x, y, @move)
 			drawPiece(x,y)
-			@turn = !@turn
+			@turn = (@turn==:black) ? :white : :black
 			@move += 1
 		end
 	end
 
 	def createGame
 		puts "Game created"
+		clear_board
+		@turn = :black
+		@move = 0
 	end
 
 	def drawPiece(x,y)
-    	@pieces[x][y].pixmap = Qt::Pixmap.new("resources/#{@turn ? "white" : "black"}.png")
+		puts "#{x}#{y}"
+    	@pieces[x][y].label.pixmap = @turn == :white ? @white : @black
 	end
 end
 
@@ -82,8 +95,10 @@ class Piece
 	attr_reader :x
 	attr_reader :y
 	attr_reader :move
+	attr_accessor :label
 
-	def initialize(colour,x,y,move)
+	def initialize(label,x,y,colour=nil,move=nil)
+		@label = label
 		@colour = colour
 		@x = x
 		@y = y
