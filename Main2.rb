@@ -1,15 +1,17 @@
 require 'Qt4'
 
 class Main < Qt::MainWindow
-	slots 'createGame()'
+	slots 'createGame()','make_move(int,int)'
 
+	@@blank
+	@@black
+	@@white
 	def initialize
 		super
 		@pieces = Array.new(9) {Array.new(9)}
-		@blank = Qt::Pixmap.new("")
-		@black = Qt::Pixmap.new("resources/black.png")
-		@white = Qt::Pixmap.new("resources/white.png")
-
+		@@blank ||= Qt::Pixmap.new("")
+		@@black ||= Qt::Pixmap.new("resources/black.png")
+		@@white ||= Qt::Pixmap.new("resources/white.png")
 		setWindowTitle 'GoGo Red Panda'
 		@turn = :black
 		@move = 0
@@ -27,15 +29,14 @@ class Main < Qt::MainWindow
 
     	@pieces.each_with_index do |n, row|
 			n.each_with_index do |p, col|
-		    	label = Qt::Label.new(self)
-		    	label.objectName = "#{row}#{col}"
-		    	label.text = ''
+		    	@pieces[row][col] = Piece.new(self,row,col)
+				@pieces[row][col].objectName = "#{x}#{y}"
+				@pieces[row][col].geometry = Qt::Rect.new(0,0,80,80)
+				@pieces[row][col].pixmap = @@white
 		    	xPos = (row*86) + 50
 				yPos = (col*86) + 75
-		    	label.geometry = Qt::Rect.new(0,0,80,80)
-		    	label.pixmap = @blank
-		    	label.move xPos-40,yPos-40
-		    	@pieces[row][col] = Piece.new(label,row,col)
+				@pieces[row][col].move xPos-40,yPos-40
+				connect(@pieces[row][col], SIGNAL("makeMove(int,int)"),self,SLOT("make_move(int,int)"))
 		    end
 		end
 
@@ -52,27 +53,20 @@ class Main < Qt::MainWindow
 	def clear_board
 		@pieces.each_with_index do |n, row|
 			n.each_with_index do |p, col|
-				@pieces[row][col].label.pixmap = @blank
+				@pieces[row][col].pixmap = @@blank
 			end
 		end
 	end
 
-	def mousePressEvent(event)
-		puts "Mouse clicked #{event.pos.x}, #{event.pos.y-25}"
-		determineCoOrd(event.pos)
-	end
-
-	def determineCoOrd(pos)
-		x = (pos.x - 50) / 86
-		y = (pos.y - 50) / 86
-		puts "#{x}#{y}"
+	def make_move(x,y) 
+		puts "move made #{x},#{y}"
 		validateMove x,y
 	end
 
 	def validateMove(x,y)
 		if (true) then #check for move validity here
 			drawPiece(x,y)
-			@turn = (@turn==:black) ? :white : :black
+			#@turn = (@turn==:black) ? :white : :black
 			@move += 1
 		end
 	end
@@ -85,24 +79,28 @@ class Main < Qt::MainWindow
 	end
 
 	def drawPiece(x,y)
-		puts "#{x}#{y}"
-    	@pieces[x][y].label.pixmap = @turn == :white ? @white : @black
+    	@pieces[x][y].pixmap = @turn == :white ? @@white : @@black
 	end
 end
 
-class Piece
+class Piece < Qt::Label
+	signals 'makeMove(int,int)'
 	attr_reader :colour
 	attr_reader :x
 	attr_reader :y
-	attr_reader :move
-	attr_accessor :label
+	attr_reader :turn_num
 
-	def initialize(label,x,y,colour=nil,move=nil)
-		@label = label
+	def initialize(parent,x,y,colour=nil,turn_num=[])
+		super(parent)	
 		@colour = colour
 		@x = x
 		@y = y
-		@move = move
+		@turn_num = turn_num
+	end
+
+	def mousePressEvent(event)
+		puts "Mouse clicked #{@x}, #{@y}"
+		emit makeMove(@x,@y)
 	end
 end
 
