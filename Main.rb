@@ -1,7 +1,7 @@
 require 'Qt4'
 
 class Main < Qt::MainWindow
-	slots 'createGame()','make_move(int,int)','enter_piece(int,int)','leave_piece(int,int)'
+	slots 'createGame()','make_move(int,int)','enter_piece(int,int)','clear_piece(int,int)'
 	attr_reader :game_moves
 
 	@@blank
@@ -43,7 +43,8 @@ class Main < Qt::MainWindow
 				piece.move xPos-40,yPos-40
 				connect(piece, SIGNAL("makeMove(int,int)"),self,SLOT("make_move(int,int)"))
 				connect(piece, SIGNAL("enterPiece(int,int)"),self,SLOT("enter_piece(int,int)"))
-				connect(piece, SIGNAL("leavePiece(int,int)"),self,SLOT("leave_piece(int,int)"))
+				connect(piece, SIGNAL("leavePiece(int,int)"),self,SLOT("clear_piece(int,int)"))
+				connect(piece, SIGNAL("removePiece(int,int)"),self,SLOT("clear_piece(int,int)"))
 			end
 		end
 
@@ -75,7 +76,7 @@ class Main < Qt::MainWindow
 		drawPiece(@pieces[x][y],(@turn == :black) ? :tblack : :twhite)
 	end
 
-	def leave_piece(x,y)
+	def clear_piece(x,y)
 		drawPiece(@pieces[x][y],:blank)
 	end
 
@@ -117,7 +118,7 @@ class Main < Qt::MainWindow
 end
 
 class Piece < Qt::Label
-	signals 'makeMove(int,int)','enterPiece(int,int)','leavePiece(int,int)'
+	signals 'makeMove(int,int)','enterPiece(int,int)','leavePiece(int,int)','removePiece(int,int)'
 	attr_accessor :colour
 	attr_reader :x
 	attr_reader :y
@@ -133,7 +134,8 @@ class Piece < Qt::Label
 
 	#emits SIGNAL makeMove(int,int)
 	def mousePressEvent(event)
-		emit makeMove(@x,@y)
+		emit makeMove(@x,@y) if event.button == Qt::LeftButton
+		emit removePiece(@x,@y) if event.button == Qt::RightButton
 	end
 
 	def enterEvent(event)
