@@ -1,99 +1,150 @@
-=begin
-** Form generated from reading ui file 'Main.ui'
-**
-** Created: Mon Mar 7 21:03:00 2011
-**      by: Qt User Interface Compiler version 4.7.0
-**
-** WARNING! All changes made in this file will be lost when recompiling ui file!
-=end
-
 require 'Qt4'
 
-class Ui_MainWindow
-    attr_reader :actionExit
-    attr_reader :actionNew_Game
-    attr_reader :centralwidget
-    attr_reader :label
-    attr_reader :menubar
-    attr_reader :menuFile
-    attr_reader :statusbar
+class Main < Qt::MainWindow
+	slots 'createGame()','make_move(int,int)','enter_piece(int,int)','leave_piece(int,int)'
+	attr_reader :game_moves
 
-    def setupUi(mainWindow)
-    if mainWindow.objectName.nil?
-        mainWindow.objectName = "mainWindow"
-    end
-    mainWindow.resize(800, 850)
-    @actionExit = Qt::Action.new(mainWindow)
-    @actionExit.objectName = "actionExit"
-    @actionNew_Game = Qt::Action.new(mainWindow)
-    @actionNew_Game.objectName = "actionNew_Game"
-    @centralwidget = Qt::Widget.new(mainWindow)
-    @centralwidget.objectName = "centralwidget"
-    @label = Qt::Label.new(@centralwidget)
-    @label.objectName = "label"
-    @label.geometry = Qt::Rect.new(0, 0, 800, 800)
-    @label.pixmap = Qt::Pixmap.new("resources/board.png")
-    mainWindow.centralWidget = @centralwidget
-    @menubar = Qt::MenuBar.new(mainWindow)
-    @menubar.objectName = "menubar"
-    @menubar.geometry = Qt::Rect.new(0, 0, 800, 25)
-    @menuFile = Qt::Menu.new(@menubar)
-    @menuFile.objectName = "menuFile"
-    mainWindow.setMenuBar(@menubar)
-    @statusbar = Qt::StatusBar.new(mainWindow)
-    @statusbar.objectName = "statusbar"
-    mainWindow.statusBar = @statusbar
+	@@blank
+	@@black
+	@@white
+	@@tblack
+	@@twhite
+	def initialize
+		super
+		@pieces = Array.new(9) {Array.new(9)}
+		@game_moves = []
+		@@blank ||= Qt::Pixmap.new("")
+		@@black ||= Qt::Pixmap.new("resources/black.png")
+		@@white ||= Qt::Pixmap.new("resources/white.png")
+		@@tblack ||= Qt::Pixmap.new("resources/tblack.png")
+		@@twhite ||= Qt::Pixmap.new("resources/twhite.png")
+		setWindowTitle 'GoGo Red Panda'
+		@turn = :black
+		@move = 0
+		init_ui
+		resize 800,850
+		show
+	end
 
-    @menubar.addAction(@menuFile.menuAction())
-    @menuFile.addAction(@actionNew_Game)
-    @menuFile.addSeparator()
-    @menuFile.addAction(@actionExit)
+	def init_ui
+		@label = Qt::Label.new(self)
+		@label.objectName = "label"
+		@label.geometry = Qt::Rect.new(0, 25, 800, 800)
+		@label.pixmap = Qt::Pixmap.new("resources/board.png")
 
-    retranslateUi(mainWindow)
+		@pieces.each_with_index do |n, row|
+			n.each_with_index do |p, col|
+				@pieces[row][col] = piece = Piece.new(self,row,col)
+				piece.objectName = "#{x}#{y}"
+				piece.geometry = Qt::Rect.new(0,0,80,80)
+				drawPiece(piece,:blank)
+				xPos = (row*86) + 50
+				yPos = (col*86) + 75
+				piece.move xPos-40,yPos-40
+				connect(piece, SIGNAL("makeMove(int,int)"),self,SLOT("make_move(int,int)"))
+				connect(piece, SIGNAL("enterPiece(int,int)"),self,SLOT("enter_piece(int,int)"))
+				connect(piece, SIGNAL("leavePiece(int,int)"),self,SLOT("leave_piece(int,int)"))
+			end
+		end
 
-    Qt::MetaObject.connectSlotsByName(mainWindow)
-    end # setupUi
+		file = menuBar().addMenu "&File"
+		@newGame = file.addAction "New Game"
+		file.addSeparator
+		quit = file.addAction "Quit"
+		menuBar().geometry = Qt::Rect.new(0, 0, 800, 25)
 
-    def setup_ui(mainWindow)
-        setupUi(mainWindow)
-    end
+		connect(quit, SIGNAL("triggered()"),Qt::Application.instance, SLOT("quit()"))
+		connect(@newGame, SIGNAL("triggered()"),self,SLOT("createGame()"))
+	end
 
-    def retranslateUi(mainWindow)
-    mainWindow.windowTitle = Qt::Application.translate("MainWindow", "GoGo Red Panda", nil, Qt::Application::UnicodeUTF8)
-    @actionExit.text = Qt::Application.translate("MainWindow", "Exit", nil, Qt::Application::UnicodeUTF8)
-    @actionNew_Game.text = Qt::Application.translate("MainWindow", "New Game", nil, Qt::Application::UnicodeUTF8)
-    @label.text = ''
-    @menuFile.title = Qt::Application.translate("MainWindow", "File", nil, Qt::Application::UnicodeUTF8)
-    end # retranslateUi
+	def clear_board
+		@pieces.each_with_index do |n, row|
+			n.each_with_index do |p, col|
+				drawPiece(@pieces[row][col],:blank)
+			end
+		end
+	end
 
-    def retranslate_ui(mainWindow)
-        retranslateUi(mainWindow)
-    end
+	#SLOT make_move(int, int)
+	def make_move(x,y) 
+		puts "move made #{x},#{y}"
+		validateMove x,y
+	end
 
+	def enter_piece(x,y)
+		drawPiece(@pieces[x][y],(@turn == :black) ? :tblack : :twhite)
+	end
+
+	def leave_piece(x,y)
+		drawPiece(@pieces[x][y],:blank)
+	end
+
+	def validateMove(x,y)
+		piece = @pieces[x][y]
+		if (piece.colour == :blank) then #check for move validity here
+			drawPiece(piece,@turn)
+			@game_moves << {:move => @move, :colour => @turn}
+			@move += 1
+			@turn = (@turn == :black) ? :white : :black
+		end
+	end
+
+	def createGame
+		puts "Game created"
+		clear_board
+		@turn = :black
+		@move = 0
+	end
+
+	private
+	def drawPiece(piece,change_to)
+		case change_to
+		when :black then
+			piece.pixmap = @@black
+			piece.colour = :black
+		when :white then
+			piece.pixmap = @@white
+			piece.colour = :white
+		when :blank then
+			piece.pixmap = @@blank
+			piece.colour = :blank
+		when :tblack then
+			piece.pixmap = @@tblack
+		when :twhite then
+			piece.pixmap = @@twhite
+		end
+	end
 end
 
-module Ui
-    class MainWindow < Ui_MainWindow
-        #slots 'actionNewGame()'         
-        def initialize (window)
-            super
-            @w = window
-            setupUi(@w)
-            puts 'Output'
-            @w.connect(@actionNew_Game, SIGNAL("triggered()"), self, SLOT("actionNewGame()"))
-        end
+class Piece < Qt::Label
+	signals 'makeMove(int,int)','enterPiece(int,int)','leavePiece(int,int)'
+	attr_accessor :colour
+	attr_reader :x
+	attr_reader :y
+	attr_reader :turn_num
 
-        def actionNewGame
-            puts 'New Game'
-        end
-    end
-end  # module Ui
+	def initialize(parent,x,y,colour=nil,turn_num=[])
+		super(parent)	
+		@colour = colour
+		@x = x
+		@y = y
+		@turn_num = turn_num
+	end
 
-if $0 == __FILE__
-    a = Qt::Application.new(ARGV)
-    
-    w = Qt::MainWindow.new
-    u = Ui::MainWindow.new(w)
-    w.show
-    a.exec
+	#emits SIGNAL makeMove(int,int)
+	def mousePressEvent(event)
+		emit makeMove(@x,@y)
+	end
+
+	def enterEvent(event)
+		emit enterPiece(@x,@y) if @colour == :blank
+	end
+
+	def leaveEvent(event)
+		emit leavePiece(@x,@y) if @colour == :blank
+	end
 end
+
+app = Qt::Application.new ARGV
+Main.new
+app.exec
