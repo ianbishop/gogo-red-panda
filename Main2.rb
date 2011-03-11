@@ -1,12 +1,14 @@
 require 'Qt4'
 
 class Main < Qt::MainWindow
-	slots 'createGame()','make_move(int,int)'
+	slots 'createGame()','make_move(int,int)','enter_piece(int,int)','leave_piece(int,int)'
 	attr_reader :game_moves
 
 	@@blank
 	@@black
 	@@white
+	@@tblack
+	@@twhite
 	def initialize
 		super
 		@pieces = Array.new(9) {Array.new(9)}
@@ -14,6 +16,8 @@ class Main < Qt::MainWindow
 		@@blank ||= Qt::Pixmap.new("")
 		@@black ||= Qt::Pixmap.new("resources/black.png")
 		@@white ||= Qt::Pixmap.new("resources/white.png")
+		@@tblack ||= Qt::Pixmap.new("resources/tblack.png")
+		@@twhite ||= Qt::Pixmap.new("resources/twhite.png")
 		setWindowTitle 'GoGo Red Panda'
 		@turn = :black
 		@move = 0
@@ -38,6 +42,8 @@ class Main < Qt::MainWindow
 				yPos = (col*86) + 75
 				piece.move xPos-40,yPos-40
 				connect(piece, SIGNAL("makeMove(int,int)"),self,SLOT("make_move(int,int)"))
+				connect(piece, SIGNAL("enterPiece(int,int)"),self,SLOT("enter_piece(int,int)"))
+				connect(piece, SIGNAL("leavePiece(int,int)"),self,SLOT("leave_piece(int,int)"))
 			end
 		end
 
@@ -63,6 +69,14 @@ class Main < Qt::MainWindow
 	def make_move(x,y) 
 		puts "move made #{x},#{y}"
 		validateMove x,y
+	end
+
+	def enter_piece(x,y)
+		drawPiece(@pieces[x][y],(@turn == :black) ? :tblack : :twhite)
+	end
+
+	def leave_piece(x,y)
+		drawPiece(@pieces[x][y],:blank)
 	end
 
 	def validateMove(x,y)
@@ -94,12 +108,16 @@ class Main < Qt::MainWindow
 		when :blank then
 			piece.pixmap = @@blank
 			piece.colour = :blank
+		when :tblack then
+			piece.pixmap = @@tblack
+		when :twhite then
+			piece.pixmap = @@twhite
 		end
 	end
 end
 
 class Piece < Qt::Label
-	signals 'makeMove(int,int)'
+	signals 'makeMove(int,int)','enterPiece(int,int)','leavePiece(int,int)'
 	attr_accessor :colour
 	attr_reader :x
 	attr_reader :y
@@ -116,6 +134,14 @@ class Piece < Qt::Label
 	#emits SIGNAL makeMove(int,int)
 	def mousePressEvent(event)
 		emit makeMove(@x,@y)
+	end
+
+	def enterEvent(event)
+		emit enterPiece(@x,@y) if @colour == :blank
+	end
+
+	def leaveEvent(event)
+		emit leavePiece(@x,@y) if @colour == :blank
 	end
 end
 
