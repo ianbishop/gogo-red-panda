@@ -39,16 +39,11 @@ module GTProtocol
    end
    
    class Wrapper < Game
-      
+      attr_reader :open
+
       def create_game
-         open('/Applications/gnugo --mode gtp')
-         clear_board
-         play('black', 'D5')
-         m = genmove('white')
-         puts m
-         play('black', m)
-         play('black', 'E3')
-         puts showboard
+		 open('/Applications/gnugo --mode gtp') unless open
+		 clear_board
       end
    
       def move
