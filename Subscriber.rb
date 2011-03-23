@@ -1,6 +1,5 @@
-class Subscriber
+module Subscriber
 	def accept message
-		raise not_initialized 
+		raise "not initialized" 
 	end
-
 end

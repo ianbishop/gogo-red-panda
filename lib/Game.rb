@@ -1,4 +1,4 @@
-class Game
+module Game
    def create_game
       raise "not implemented"
    end

@@ -38,7 +38,10 @@ module GTProtocol
       end
    end
    
-   class Wrapper < Game
+   class Wrapper
+   			include Game
+			include Subscriber
+			
       attr_reader :open
 
       def create_game
@@ -53,6 +56,9 @@ module GTProtocol
       def end_game
          
       end
+
+	  def accept(message)
+	  end
       
       private 
       def open(gnugo)

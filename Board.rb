@@ -1,6 +1,8 @@
 require 'Qt4'
 
 class Board < Qt::MainWindow
+		include Subscriber
+
 	slots 'createGame()','make_move(int,int)','enter_piece(int,int)','clear_piece(int,int)'
 	attr_reader :game_moves
 
@@ -9,8 +11,9 @@ class Board < Qt::MainWindow
 	@@white
 	@@tblack
 	@@twhite
-	def initialize
+	def initialize(repeater)
 		super
+		@repeater = repeater
 		@pieces = Array.new(9) {Array.new(9)}
 		@game_moves = []
 		@@blank ||= Qt::Pixmap.new("")
@@ -97,6 +100,10 @@ class Board < Qt::MainWindow
 		@move = 0
 	end
 
+	def accept(message)
+	
+	end
+	
 	private
 	def drawPiece(piece,change_to)
 		case change_to
